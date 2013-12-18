@@ -173,6 +173,42 @@ GIT_EXTERN(int) git_reference_symbolic_create_with_log(
 GIT_EXTERN(int) git_reference_create(git_reference **out, git_repository *repo, const char *name, const git_oid *id, int force);
 
 /**
+ * Conditionally create new direct reference
+ *
+ * A direct reference (also called an object id reference) refers directly
+ * to a specific object id (a.k.a. OID or SHA) in the repository.  The id
+ * permanently refers to the object (although the reference itself can be
+ * moved).  For example, in libgit2 the direct ref "refs/tags/v0.17.0"
+ * refers to OID 5b9fac39d8a76b9139667c26a63e6b3f204b3977.
+ *
+ * The direct reference will be created in the repository and written to
+ * the disk.  The generated reference object must be freed by the user.
+ *
+ * Valid reference names must follow one of two patterns:
+ *
+ * 1. Top-level names must contain only capital letters and underscores,
+ *    and must begin and end with a letter. (e.g. "HEAD", "ORIG_HEAD").
+ * 2. Names prefixed with "refs/" can be almost anything.  You must avoid
+ *    the characters '~', '^', ':', '\\', '?', '[', and '*', and the
+ *    sequences ".." and "@{" which have special meaning to revparse.
+ *
+ * This function will return an error if a reference already exists with the
+ * given name unless `force` is true, in which case it will be overwritten.
+ *
+ * It will also return an error if the reference's value at the time
+ * of updating does not match the one passed.
+ *
+ * @param out Pointer to the newly created reference
+ * @param repo Repository where that reference will live
+ * @param name The name of the reference
+ * @param id The object id pointed to by the reference.
+ * @param force Overwrite existing references
+ * @param old_id The old value which the reference should have
+ * @return 0 on success, GIT_EEXISTS, GIT_EINVALIDSPEC or an error code
+ */
+GIT_EXTERN(int) git_reference_create_if(git_reference **out, git_repository *repo, const char *name, const git_oid *id, int force, const git_oid *old_id);
+
+/**
  * Create a new direct reference and update the reflog with a given
  * message.
  *
@@ -343,7 +379,7 @@ GIT_EXTERN(int) git_reference_symbolic_set_target_with_log(
 	const char *log_message);
 
 /**
- * Create a new reference with the same name as the given reference but a
+ * Conditionally create a new reference with the same name as the given reference but a
  * different OID target. The reference must be a direct reference, otherwise
  * this will fail.
  *
@@ -358,6 +394,25 @@ GIT_EXTERN(int) git_reference_set_target(
 	git_reference **out,
 	git_reference *ref,
 	const git_oid *id);
+
+/**
+ * Create a new reference with the same name as the given reference but a
+ * different OID target. The reference must be a direct reference, otherwise
+ * this will fail.
+ *
+ * The new reference will be written to disk, overwriting the given reference.
+ *
+ * @param out Pointer to the newly created reference
+ * @param ref The reference
+ * @param id The new target OID for the reference
+ * @param old_id The old value which the reference should have
+ * @return 0 or an error code
+ */
+GIT_EXTERN(int) git_reference_set_target_if(
+	git_reference **out,
+	git_reference *ref,
+	const git_oid *id,
+	const git_oid *old_id);
 
 /**
  * Create a new reference with the same name as the given reference but a
