@@ -394,7 +394,7 @@ static int reference__create(
 	return 0;
 }
 
-int git_reference_create_if(
+int git_reference_create_matching(
 	git_reference **ref_out,
 	git_repository *repo,
 	const char *name,
@@ -427,17 +427,18 @@ int git_reference_create(
 	const git_oid *id,
 	int force)
 {
-        return git_reference_create_if(ref_out, repo, name, id, force, NULL);
+        return git_reference_create_matching(ref_out, repo, name, id, force, NULL);
 }
 
-int git_reference_create_with_log(
+int git_reference_create_with_log_matching(
 	git_reference **ref_out,
 	git_repository *repo,
 	const char *name,
 	const git_oid *id,
 	int force,
 	const git_signature *signature,
-	const char *log_message)
+	const char *log_message,
+	const git_oid *old_id)
 {
 	git_odb *odb;
 	int error;
@@ -454,7 +455,19 @@ int git_reference_create_with_log(
 		return -1;
 	}
 
-	return reference__create(ref_out, repo, name, id, NULL, force, signature,log_message, NULL);
+	return reference__create(ref_out, repo, name, id, NULL, force, signature,log_message, old_id);
+}
+
+int git_reference_create_with_log(
+	git_reference **ref_out,
+	git_repository *repo,
+	const char *name,
+	const git_oid *id,
+	int force,
+	const git_signature *signature,
+	const char *log_message)
+{
+	return git_reference_create_with_log_matching(ref_out, repo, name, id, force, signature, log_message, NULL);
 }
 
 int git_reference_symbolic_create(
@@ -493,11 +506,10 @@ static int ensure_is_an_updatable_direct_reference(git_reference *ref)
 	return -1;
 }
 
-int git_reference_set_target_if(
+int git_reference_set_target(
 	git_reference **out,
 	git_reference *ref,
-	const git_oid *id,
-        const git_oid *old_id)
+	const git_oid *id)
 {
 	int error;
 	git_odb *odb;
@@ -519,7 +531,7 @@ int git_reference_set_target_if(
 		return -1;
 	}
 
-	return git_reference_create_if(out, repo, ref->name, id, 1, old_id);
+	return git_reference_create_matching(out, repo, ref->name, id, 1, &ref->target.oid);
 }
 
 int git_reference_set_target_with_log(
@@ -537,8 +549,8 @@ int git_reference_set_target_with_log(
 	if ((error = ensure_is_an_updatable_direct_reference(ref)) < 0)
 		return error;
 
-	return git_reference_create_with_log(
-		out, ref->db->repo, ref->name, id, 1, signature, log_message);
+	return git_reference_create_with_log_matching(
+		out, ref->db->repo, ref->name, id, 1, signature, log_message, &ref->target.oid);
 }
 
 static int ensure_is_an_updatable_symbolic_reference(git_reference *ref)
@@ -548,14 +560,6 @@ static int ensure_is_an_updatable_symbolic_reference(git_reference *ref)
 
 	giterr_set(GITERR_REFERENCE, "Cannot set symbolic target on a direct reference");
 	return -1;
-}
-
-int git_reference_set_target(
-	git_reference **out,
-	git_reference *ref,
-	const git_oid *id)
-{
-        return git_reference_set_target_if(out, ref, id, NULL);
 }
 
 int git_reference_symbolic_set_target(
