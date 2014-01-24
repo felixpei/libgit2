@@ -195,10 +195,13 @@ void test_refs_reflog_reflog__write_only_std_locations(void)
 	git_reference_free(ref);
 	cl_git_pass(git_reference_create(&ref, g_repo, "refs/notes/foo", &id, 1, NULL, NULL));
 	git_reference_free(ref);
+	cl_git_pass(git_reference_symbolic_create(&ref, g_repo, "refs/heads/symbolic", "refs/heads/foo", 1, NULL, NULL));
+	git_reference_free(ref);
 
 	assert_has_reflog(true, "refs/heads/foo");
 	assert_has_reflog(false, "refs/tags/foo");
 	assert_has_reflog(true, "refs/notes/foo");
+	assert_has_reflog(true, "refs/heads/symbolic");
 
 }
 
